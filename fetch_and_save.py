@@ -3,6 +3,8 @@ import pymongo
 import requests
 from pymongo import MongoClient, ReplaceOne
 
+from listing_fetcher import ListingFetcher
+
 # --- Configuration ---
 URL = "https://www.immobiliare.it/api-next/search-list/listings/?fkRegione=fri&idProvincia=UD&idNazione=IT&idContratto=2&idCategoria=1&prezzoMassimo=1200&__lang=it&minLat=46.048872&maxLat=46.07978&minLng=13.189259&maxLng=13.273544&pag=1&paramsCount=5&path=%2Faffitto-case%2Fudine-provincia%2F"
 MONGO_URI =  "mongodb+srv://cluster0.7qska.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0"
@@ -52,28 +54,16 @@ def fetch_data_and_save_to_mongo():
     print(f"Fetching data from URL: {URL}")
 
     try:
-        # --- Fetch Data from URL ---
-        # Set a User-Agent to mimic a browser and avoid being blocked
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        response = requests.get(URL, headers=headers)
-        response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
-        data = response.json()
-        print("Data fetched successfully.")
+     
 
         # --- Extract Results ---
-        results = data.get("results", [])
+        results = ListingFetcher(URL).fetch_all_listings()
+
         if not results:
             print("No 'result' field found in the response or it is empty.")
             # If there are no results, we should sync, which will clear the collection.
             pass
 
-        # --- Add custom _id to each result ---
-        for result in results:
-            # Use the 'id' from the 'realEstate' object as the MongoDB '_id'
-            if result.get("realEstate") and result["realEstate"].get("id"):
-                result["_id"] = result["realEstate"]["id"]
 
         # --- Connect to MongoDB ---
         print(f"Connecting to MongoDB database: '{DATABASE_NAME}'...")
