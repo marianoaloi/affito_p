@@ -1,3 +1,4 @@
+import time
 import requests
 
 class ListingFetcher:
@@ -56,6 +57,7 @@ class ListingFetcher:
             # Use the 'id' from the 'realEstate' object as the MongoDB '_id'
             if result.get("realEstate") and result["realEstate"].get("id"):
                 result["_id"] = result["realEstate"]["id"]
+                result["mLastUpdate"] = time.time()
 
         return all_results
 
