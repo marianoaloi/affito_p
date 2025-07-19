@@ -1,7 +1,7 @@
 
 import pymongo
 import requests
-from pymongo import MongoClient, ReplaceOne
+from pymongo import MongoClient,  UpdateOne
 
 from listing_fetcher import ListingFetcher
 
@@ -36,8 +36,10 @@ def compare_and_sync(collection, results):
 
     # Upsert all documents from the latest fetch
     if results_with_id:
+        for r in results_with_id:
+            del r["mLastUpdate"]
         operations = [
-            ReplaceOne({"_id": r["_id"]}, r, upsert=True) for r in results_with_id
+            UpdateOne({"_id": r["_id"]}, {"$set": r}, upsert=True) for r in results_with_id
         ]
         if operations:
             print(f"Upserting {len(operations)} documents (adding new, updating existing).")
