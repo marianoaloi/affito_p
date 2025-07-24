@@ -1,6 +1,7 @@
 
 import pymongo
 import requests
+import time
 from pymongo import MongoClient,  UpdateOne
 
 from listing_fetcher import ListingFetcher
@@ -45,7 +46,15 @@ def compare_and_sync(collection, results):
             print(f"Upserting {len(operations)} documents (adding new, updating existing).")
             result = collection.bulk_write(operations)
             print(f"Sync result: {result.upserted_count} documents inserted, {result.modified_count} documents updated.")
-    
+
+        
+        operations = [
+            UpdateOne({"_id": r}, {"$set": {"mCreateDate":time.time()}}) for r in result.upserted_ids.values()
+        ]
+        
+        if operations:
+            result = collection.bulk_write(operations)
+           
     print("Synchronization complete.")
 
 
