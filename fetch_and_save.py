@@ -40,7 +40,7 @@ def compare_and_sync(collection, results):
         for r in results_with_id:
             del r["mLastUpdate"]
         operations = [
-            UpdateOne({"_id": r["_id"]}, {"$set": r}, upsert=True) for r in results_with_id
+            UpdateOne({"_id": r["_id"]}, {"$set": r,"$unset":{"deleted":True}}, upsert=True) for r in results_with_id
         ]
         if operations:
             print(f"Upserting {len(operations)} documents (adding new, updating existing).")
