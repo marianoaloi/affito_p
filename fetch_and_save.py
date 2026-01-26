@@ -1,4 +1,5 @@
 
+import os
 import pymongo
 import requests
 import time
@@ -7,10 +8,12 @@ from pymongo import MongoClient,  UpdateOne
 from listing_fetcher import ListingFetcher
 
 # --- Configuration ---
+URL_TS="https://www.immobiliare.it/api-next/search-list/listings/?fkRegione=fri&idProvincia=TS&idComune=6307&idNazione=IT&prezzoMassimo=1200&__lang=it&idContratto=2&idCategoria=1&pag=1&paramsCount=0&path=%2Faffitto-case%2Ftrieste%2F"
 URL = "https://www.immobiliare.it/api-next/search-list/listings/?fkRegione=fri&idProvincia=UD&idNazione=IT&idContratto=2&idCategoria=1&prezzoMassimo=1200&__lang=it&minLat=46.048872&maxLat=46.07978&minLng=13.189259&maxLng=13.273544&pag=1&paramsCount=5&path=%2Faffitto-case%2Fudine-provincia%2F"
 MONGO_URI =  "mongodb+srv://cluster0.7qska.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0"
 DATABASE_NAME = "udine"
 COLLECTION_NAME = "affito"
+COLLECTION_PRIMARYFEATURES = "primaryFeatures"
 
 def compare_and_sync(collection, results):
     """
@@ -19,7 +22,7 @@ def compare_and_sync(collection, results):
     - Removes documents that are no longer in the results.
     - Updates existing documents.
     """
-    print("Comparing and synchronizing data...")
+    print("Comparing and synchronizing data... ",len(results), " items fetched.")
 
     results_with_id = [r for r in results if r.get("_id")]
     if len(results_with_id) != len(results):
@@ -35,12 +38,29 @@ def compare_and_sync(collection, results):
         print(f"Removing {len(to_remove_ids)} old documents.")
         collection.update_many({"_id": {"$in": list(to_remove_ids)}},{"$set": {"deleted": True}})
 
+    
+    items = collection.find({"deleted":{"$exists":False}})
+    items = {item["realEstate"]["id"]:item for item in items}
+
+    results_with_id = [ r for r in results_with_id 
+                        if 
+                            not (
+                                r["realEstate"]["id"] in items 
+                                and 
+                                r["realEstate"] == items[r["realEstate"]["id"]]["realEstate"]
+                                )
+                    ]
+
     # Upsert all documents from the latest fetch
     if results_with_id:
         for r in results_with_id:
             del r["mLastUpdate"]
+            r["mLastImmobiliareUpdate"] = time.time()
         operations = [
-            UpdateOne({"_id": r["_id"]}, {"$set": r,"$unset":{"deleted":True}}, upsert=True) for r in results_with_id
+            UpdateOne(
+                {"_id": r["_id"]}, 
+                {"$set": {"realEstate":r["realEstate"]},"$unset":{"deleted":True}}, upsert=True
+            ) for r in results_with_id
         ]
         if operations:
             print(f"Upserting {len(operations)} documents (adding new, updating existing).")
@@ -57,18 +77,39 @@ def compare_and_sync(collection, results):
            
     print("Synchronization complete.")
 
+def auto_choice(db):
+    """
+    Automatically selects listings based on predefined criteria.
+    """
+    print("Running auto-choice selection...")
+    ids = [str(doc["_id"]) for doc in db[COLLECTION_PRIMARYFEATURES].find({"Accesso_per_disabili":0},{"_id":1})]
+    if not ids:
+        return
+    result = db[COLLECTION_NAME].update_many({
+                        "deleted" : {"$exists":False},
+                        "stateMaloi":{"$exists":False},
+                        "_id":{"$in":ids}
+        }
+                                             ,                                
+                                             {"$set":{"stateMaloi":0}})
+    print(f"Auto-choice selection complete. {result.modified_count} documents updated.")
 
 def fetch_data_and_save_to_mongo():
     """
     Fetches listing data from the URL and saves it to a MongoDB collection.
     """
-    print(f"Fetching data from URL: {URL}")
 
     try:
      
 
         # --- Extract Results ---
+        
+        print(f"Fetching data from URL: {URL}")
         results = ListingFetcher(URL).fetch_all_listings()
+
+        
+        print(f"Fetching data from URL: {URL_TS}")
+        results += ListingFetcher(URL_TS).fetch_all_listings()
 
         if not results:
             print("No 'result' field found in the response or it is empty.")
@@ -80,7 +121,7 @@ def fetch_data_and_save_to_mongo():
         print(f"Connecting to MongoDB database: '{DATABASE_NAME}'...")
         client = MongoClient(MONGO_URI,
                      tls=True,
-                     tlsCertificateKeyFile='X509-cert-2864290664025085959.pem',
+                     tlsCertificateKeyFile= os.path.dirname(__file__) + '/X509-cert-2864290664025085959.pem',
                      server_api=pymongo.server_api.ServerApi('1'))
         db = client[DATABASE_NAME]
         collection = db[COLLECTION_NAME]
@@ -88,6 +129,7 @@ def fetch_data_and_save_to_mongo():
 
         # --- Compare and Sync Data ---
         compare_and_sync(collection, results)
+        auto_choice(db)
 
     except requests.exceptions.RequestException as e:
         print(f"An error occurred while fetching data: {e}")

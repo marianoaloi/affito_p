@@ -1,5 +1,6 @@
 import time
 import requests
+from random import random
 
 class ListingFetcher:
     def __init__(self, base_url):
@@ -24,6 +25,8 @@ class ListingFetcher:
                 response = requests.get(url, headers=self.headers)
                 response.raise_for_status()
                 data = response.json()
+
+                time.sleep(1 + (random() * 3))  # Be polite and avoid overwhelming the server
 
                 # Update max_pages on the first iteration
                 if page == 1:
