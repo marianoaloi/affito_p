@@ -8,6 +8,7 @@ from pymongo import MongoClient,  UpdateOne
 from listing_fetcher import ListingFetcher
 
 # --- Configuration ---
+URL_COMPRA_UD = "https://www.immobiliare.it/api-next/search-list/listings/?fkRegione=fri&idProvincia=UD&idComune=6437&idNazione=IT&idContratto=1&idCategoria=1&prezzoMassimo=200000&__lang=it&minLat=46.012105&maxLat=46.106327&minLng=13.143768&maxLng=13.347702&pag=1&paramsCount=5&path=%2Fvendita-case%2Fudine%2F"
 URL_TS="https://www.immobiliare.it/api-next/search-list/listings/?fkRegione=fri&idProvincia=TS&idComune=6307&idNazione=IT&prezzoMassimo=1200&__lang=it&idContratto=2&idCategoria=1&pag=1&paramsCount=0&path=%2Faffitto-case%2Ftrieste%2F"
 URL = "https://www.immobiliare.it/api-next/search-list/listings/?fkRegione=fri&idProvincia=UD&idNazione=IT&idContratto=2&idCategoria=1&prezzoMassimo=1200&__lang=it&minLat=46.048872&maxLat=46.07978&minLng=13.189259&maxLng=13.273544&pag=1&paramsCount=5&path=%2Faffitto-case%2Fudine-provincia%2F"
 MONGO_URI =  "mongodb+srv://cluster0.7qska.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority&appName=Cluster0"
@@ -82,7 +83,7 @@ def auto_choice(db):
     Automatically selects listings based on predefined criteria.
     """
     print("Running auto-choice selection...")
-    ids = [str(doc["_id"]) for doc in db[COLLECTION_PRIMARYFEATURES].find({"Accesso_per_disabili":0},{"_id":1})]
+    ids = [int(doc["_id"]) for doc in db[COLLECTION_PRIMARYFEATURES].find({"Accesso_per_disabili":0},{"_id":1})]
     if not ids:
         return
     result = db[COLLECTION_NAME].update_many({
@@ -109,7 +110,7 @@ def fetch_data_and_save_to_mongo():
 
         
         print(f"Fetching data from URL: {URL_TS}")
-        results += ListingFetcher(URL_TS).fetch_all_listings()
+        # results += ListingFetcher(URL_TS).fetch_all_listings()
 
         if not results:
             print("No 'result' field found in the response or it is empty.")
