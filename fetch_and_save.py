@@ -68,7 +68,7 @@ def compare_and_sync(collection, results, type: ImmobiliareType ):
         operations = [
             UpdateOne(
                 {"_id": r["_id"]}, 
-                {"$set": {"realEstate":r["realEstate"]},"$unset":{"deleted":True}}, upsert=True
+                {"$set": {"realEstate":r["realEstate"] , "type": type.value},"$unset":{"deleted":True}}, upsert=True
             ) for r in results_with_id
         ]
         if operations:
