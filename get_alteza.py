@@ -5,6 +5,9 @@ from pymongo import MongoClient
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 
+import dotenv
+dotenv.load_dotenv()
+
 # filepath: c:\Users\maria\prj\Python\affito_p\get_alteza.py
 
 # --- Configuration ---
@@ -12,7 +15,7 @@ MONGO_URI = "mongodb+srv://cluster0.7qska.mongodb.net/?authSource=%24external&au
 DATABASE_NAME = "udine"
 COLLECTION_NAME = "affito"
 GOOGLE_ELEVATION_API = "https://maps.googleapis.com/maps/api/elevation/json"
-GOOGLE_API_KEY = "AIzaSyCNi1mBimPVqCnxRyIUwAcW5I6Ws_4xoGI"
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")  # Ensure this environment variable is set with your API key
 MAX_WORKERS = 10
 
 def get_elevation(latitude, longitude):

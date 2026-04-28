@@ -119,8 +119,8 @@ def fetch_data_and_save_to_mongo():
         results = ListingFetcher(URL).fetch_all_listings()
 
         
-        # print(f"Fetching data from URL: {URL_TS}")
-        # results += ListingFetcher(URL_TS).fetch_all_listings()
+        print(f"Fetching data from URL: {URL_TS}")
+        results += ListingFetcher(URL_TS).fetch_all_listings()
 
         if not results:
             print("No 'result' field found in the response or it is empty.")
