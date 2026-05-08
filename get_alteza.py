@@ -64,7 +64,7 @@ def fetch_and_update_elevations():
         print("MongoDB connection successful.")
 
         # --- Fetch all non-deleted documents ---
-        query = {"deleted": {"$exists": False} , "elevation": {"$exists": False}}
+        query = {"deleted": {"$exists": False} , "elevation": {"$exists": False} , "type" : "a" , "powerproperties.location.province" : 'Trieste'}
         documents = list(collection.find(query))
         print(f"Found {len(documents)} documents to process.")
 

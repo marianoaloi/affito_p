@@ -2,3 +2,4 @@
 X509-cert-2864290664025085959.pem
 __pycache__
 .vscode
+node_modules/**
